@@ -27,16 +27,16 @@
     <style>
         /* ---- Variables de color del tema (extraídas de tutor-frontend-inline-css) ---- */
         :root {
-            --tutor-color-primary: #d6b03d;
-            --tutor-color-primary-rgb: 214, 176, 61;
-            --tutor-color-primary-hover: #dac892;
-            --tutor-color-primary-hover-rgb: 218, 200, 146;
-            --tutor-body-color: #212327;
-            --tutor-body-color-rgb: 33, 35, 39;
-            --tutor-border-color: #cdcfd5;
-            --tutor-border-color-rgb: 205, 207, 213;
-            --tutor-color-gray: #e3e5eb;
-            --tutor-color-gray-rgb: 227, 229, 235;
+            --tutor-color-primary: #e63946;
+            --tutor-color-primary-rgb: 230, 57, 70;
+            --tutor-color-primary-hover: #ff4d5a;
+            --tutor-color-primary-hover-rgb: 255, 77, 90;
+            --tutor-body-color: #111111;
+            --tutor-body-color-rgb: 17, 17, 17;
+            --tutor-border-color: #333333;
+            --tutor-border-color-rgb: 51, 51, 51;
+            --tutor-color-gray: #222222;
+            --tutor-color-gray-rgb: 34, 34, 34;
         }
 
         /* ---- Colores personalizados de Plyr (sobreescribe los defaults) ---- */
@@ -47,7 +47,7 @@
             --plyr-video-control-background-hover: rgba(var(--tutor-color-primary-rgb), 0.3);
             --plyr-range-fill-background: var(--tutor-color-primary);
             --plyr-badge-background: var(--tutor-color-primary);
-            --plyr-badge-text-color: #000;
+            --plyr-badge-text-color: #fff;
             --plyr-tooltip-background: rgba(0,0,0,0.85);
             --plyr-tooltip-color: #fff;
         }
@@ -170,7 +170,7 @@
             align-items: center;
             gap: 10px;
             padding: 14px 20px;
-            background: #16213e;
+            background: #111111;
             border-bottom: 2px solid var(--tutor-color-primary);
         }
 
@@ -184,10 +184,10 @@
         .url-panel input {
             flex: 1;
             padding: 10px 14px;
-            border: 1px solid #2a2a4a;
+            border: 1px solid #333;
             border-radius: 6px;
-            background: #0f0f23;
-            color: #e0e0e0;
+            background: #1a1a1a;
+            color: #ffffff;
             font-size: 14px;
             outline: none;
             transition: border-color 0.2s;
@@ -198,13 +198,13 @@
         }
 
         .url-panel input::placeholder {
-            color: #555;
+            color: #666;
         }
 
         .url-panel button {
             padding: 10px 20px;
             background: var(--tutor-color-primary);
-            color: #000;
+            color: #fff;
             border: none;
             border-radius: 6px;
             font-weight: 700;
@@ -219,15 +219,15 @@
         }
 
         .url-status {
-            color: #aaa;
+            color: #999;
             font-size: 12px;
             padding: 6px 20px;
-            background: #16213e;
+            background: #111111;
             min-height: 28px;
         }
 
         .url-status.error { color: #ff6b6b; }
-        .url-status.success { color: #51cf66; }
+        .url-status.success { color: #ffffff; }
     </style>
 </head>
 <body>
@@ -237,7 +237,7 @@
         <label for="youtube-url">URL YouTube:</label>
         <input type="text" id="youtube-url" placeholder="Pega aquí la URL de YouTube (ejemplo: https://www.youtube.com/watch?v=...)" autocomplete="off" spellcheck="false">
         <button id="btn-cargar" onclick="cargarVideo()">Cargar Video</button>
-        <button id="btn-copiar" onclick="copiarEnlace()" style="background:#2a9d8f;">Copiar Enlace</button>
+        <button id="btn-copiar" onclick="copiarEnlace()" style="background:#fff;color:#111;">Copiar Enlace</button>
     </div>
     <div class="url-status" id="url-status">Pega una URL de YouTube y presiona "Cargar Video" o simplemente pega con Ctrl+V</div>
     <div class="url-status" id="link-generado" style="display:none; cursor:pointer;" onclick="copiarTextoLink()"></div>
@@ -507,7 +507,7 @@
         navigator.clipboard.writeText(enlace).then(function() {
             var linkDiv = document.getElementById('link-generado');
             linkDiv.style.display = 'block';
-            linkDiv.innerHTML = '<span style="color:#51cf66;">Enlace copiado al portapapeles:</span> <span style="color:#d6b03d;text-decoration:underline;">' + enlace + '</span>';
+            linkDiv.innerHTML = '<span style="color:#ffffff;">Enlace copiado al portapapeles:</span> <span style="color:#e63946;text-decoration:underline;">' + enlace + '</span>';
             linkDiv.className = 'url-status success';
         });
     }
