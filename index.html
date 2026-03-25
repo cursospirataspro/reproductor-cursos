@@ -216,6 +216,86 @@
 
         .url-status.error { color: #ff6b6b; }
         .url-status.success { color: #ffffff; }
+
+        /* ---- RESPONSIVE: Tablets (max 768px) ---- */
+        @media (max-width: 768px) {
+            .url-panel {
+                flex-wrap: wrap;
+                padding: 10px 12px;
+                gap: 8px;
+            }
+            .url-panel label {
+                width: 100%;
+                font-size: 13px;
+            }
+            .url-panel input {
+                width: 100%;
+                flex: 1 1 100%;
+                font-size: 13px;
+                padding: 9px 10px;
+            }
+            .url-panel button {
+                flex: 1;
+                font-size: 13px;
+                padding: 9px 12px;
+            }
+            .url-status {
+                font-size: 11px;
+                padding: 5px 12px;
+            }
+            #watermark-dinamica {
+                font-size: 13px !important;
+            }
+        }
+
+        /* ---- RESPONSIVE: Móviles (max 480px) ---- */
+        @media (max-width: 480px) {
+            .url-panel {
+                padding: 8px 8px;
+                gap: 6px;
+            }
+            .url-panel label {
+                font-size: 12px;
+            }
+            .url-panel input {
+                font-size: 12px;
+                padding: 8px;
+            }
+            .url-panel button {
+                font-size: 12px;
+                padding: 8px 10px;
+            }
+            .url-status {
+                font-size: 10px;
+                padding: 4px 8px;
+                min-height: 22px;
+            }
+            #watermark-dinamica {
+                font-size: 11px !important;
+            }
+            .plyr__video-embed iframe {
+                top: -30px;
+                height: calc(100% + 60px);
+            }
+        }
+
+        /* ---- RESPONSIVE: Pantallas muy pequeñas (max 360px) ---- */
+        @media (max-width: 360px) {
+            .url-panel button {
+                font-size: 11px;
+                padding: 7px 6px;
+            }
+            .url-panel input {
+                font-size: 11px;
+            }
+        }
+
+        /* ---- Fullscreen desde contenedor externo (iframe embebido) ---- */
+        :fullscreen body,
+        :-webkit-full-screen body {
+            height: 100vh;
+            width: 100vw;
+        }
     </style>
 </head>
 <body>
