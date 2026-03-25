@@ -313,7 +313,7 @@
     var plyrConfig = {
         controls: [
             'play-large', 'play', 'progress', 'current-time',
-            'duration', 'mute', 'volume', 'settings', 'pip', 'fullscreen'
+            'duration', 'mute', 'volume', 'settings', 'fullscreen'
         ],
         settings: ['speed'],
         speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
@@ -333,6 +333,46 @@
     };
 
     window.tutorPlayer = null;
+
+    // ---- Picture-in-Picture (ventana flotante) ----
+    function activarPiP() {
+        if (!('documentPictureInPicture' in window)) {
+            alert('Tu navegador no soporta Ventana Flotante. Usa Chrome 116+ o Edge 116+.');
+            return;
+        }
+        if (documentPictureInPicture.window) {
+            documentPictureInPicture.window.close();
+            return;
+        }
+        var currentTime = 0;
+        try { currentTime = Math.floor(window.tutorPlayer.currentTime); } catch(e) {}
+        var iframe = document.querySelector('.tutorPlayer iframe');
+        if (!iframe) return;
+        var src = iframe.src.split('&start=')[0] + '&autoplay=1&start=' + currentTime;
+        documentPictureInPicture.requestWindow({ width: 640, height: 360 }).then(function(pipWindow) {
+            pipWindow.document.body.style.cssText = 'margin:0;padding:0;background:#000;overflow:hidden;';
+            var pipIframe = document.createElement('iframe');
+            pipIframe.style.cssText = 'width:100%;height:100%;border:0;';
+            pipIframe.src = src;
+            pipIframe.setAttribute('allowfullscreen', '');
+            pipIframe.setAttribute('allow', 'autoplay; picture-in-picture');
+            pipWindow.document.body.appendChild(pipIframe);
+        });
+    }
+
+    function injectPiPButton() {
+        var controls = document.querySelector('.plyr__controls');
+        if (!controls || controls.querySelector('#custom-pip-btn')) return;
+        var fullscreenBtn = controls.querySelector('[data-plyr="fullscreen"]');
+        if (!fullscreenBtn) return;
+        var btn = document.createElement('button');
+        btn.className = 'plyr__controls__item plyr__control';
+        btn.type = 'button';
+        btn.id = 'custom-pip-btn';
+        btn.innerHTML = '<svg viewBox="0 0 18 18" width="18" height="18"><path fill="currentColor" d="M1 3v12h16V3H1zm14 10H3V5h12v10z"/><path fill="currentColor" d="M10 9h4v3h-4z"/></svg><span class="plyr__tooltip">Ventana flotante</span>';
+        btn.addEventListener('click', activarPiP);
+        controls.insertBefore(btn, fullscreenBtn);
+    }
 
     // ---- Extraer ID de YouTube de cualquier formato de URL ----
     function extraerYouTubeId(url) {
@@ -419,7 +459,7 @@
                 var loadingEl = spinner.querySelector('.loading-spinner');
                 if (loadingEl) loadingEl.style.display = 'none';
             }
-            // Inyectar controles listos
+            injectPiPButton();
         });
 
         playerInstance.on('timeupdate', function() {
@@ -567,31 +607,21 @@
         }
 
         function initWatermark() {
-            // Intenta encontrar el contenedor principal del video con la clase 'plyr__video-wrapper'
-            var videoContainer = document.querySelector('.plyr__video-wrapper');
-
-            if (!videoContainer) {
-                // Si no lo encuentra, espera un segundo y vuelve a intentarlo
+            // Usar .plyr__video-embed como contenedor visible (tiene overflow:hidden)
+            var visibleContainer = document.querySelector('.plyr__video-embed');
+            if (!visibleContainer) {
                 setTimeout(initWatermark, 1000);
                 return;
             }
 
-            // Identificar el elemento de video real o su área visible
-            var videoElement = videoContainer.querySelector('video') || videoContainer.querySelector('iframe');
-
-            // Si no encontramos el elemento de video, usamos el contenedor como fallback
-            var targetElement = videoElement && videoElement.offsetWidth > 0 ? videoElement : videoContainer;
-
-            // Crea el elemento de la marca de agua si no existe
             var watermark = document.getElementById('watermark-dinamica');
             if (!watermark) {
                 watermark = document.createElement('div');
                 watermark.id = 'watermark-dinamica';
                 watermark.textContent = getDeviceId();
-                videoContainer.appendChild(watermark);
+                visibleContainer.appendChild(watermark);
             }
 
-            // Estilos CSS de la marca de agua
             watermark.style.cssText = '\
                 position: absolute;\
                 color: rgba(255, 255, 255, 0.4);\
@@ -600,33 +630,28 @@
                 font-weight: bold;\
                 z-index: 999999;\
                 pointer-events: none;\
-                transition: transform 5s ease-in-out;\
+                transition: left 5s ease-in-out, top 5s ease-in-out;\
             ';
 
             function moveWatermark() {
-                var targetWidth = targetElement.offsetWidth;
-                var targetHeight = targetElement.offsetHeight;
-                var watermarkWidth = watermark.offsetWidth;
-                var watermarkHeight = watermark.offsetHeight;
+                var w = visibleContainer.clientWidth;
+                var h = visibleContainer.clientHeight;
+                var wmW = watermark.offsetWidth || 120;
+                var wmH = watermark.offsetHeight || 20;
+                var pad = 15;
+                var bottomPad = 50;
 
-                var targetOffsetTop = targetElement.offsetTop;
-                var targetOffsetLeft = targetElement.offsetLeft;
+                var maxLeft = Math.max(pad, w - wmW - pad);
+                var maxTop = Math.max(pad, h - wmH - bottomPad);
 
-                var newTopWithinTarget = Math.random() * (targetHeight - watermarkHeight);
-                var newLeftWithinTarget = Math.random() * (targetWidth - watermarkWidth);
-
-                var finalTop = targetOffsetTop + newTopWithinTarget;
-                var finalLeft = targetOffsetLeft + newLeftWithinTarget;
-
-                watermark.style.transform = 'translate(' + finalLeft + 'px, ' + finalTop + 'px)';
+                watermark.style.left = (pad + Math.random() * (maxLeft - pad)) + 'px';
+                watermark.style.top = (pad + Math.random() * (maxTop - pad)) + 'px';
             }
 
-            // Mueve cada 30 segundos
             setInterval(moveWatermark, 30000);
             moveWatermark();
-
-            // Reajustar al cambiar tamaño de ventana
             window.addEventListener('resize', moveWatermark);
+            document.addEventListener('fullscreenchange', function() { setTimeout(moveWatermark, 300); });
         }
 
         window.addEventListener('load', initWatermark);
