@@ -149,20 +149,35 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.4s ease;
+            transition: opacity 0.3s ease;
             cursor: pointer;
         }
         #video-loading-overlay.hidden {
             opacity: 0;
             pointer-events: none;
         }
-        #video-loading-overlay .overlay-spinner {
-            width: 44px;
-            height: 44px;
-            border: 3px solid rgba(255,255,255,0.2);
-            border-top-color: var(--tutor-color-primary);
+        #video-loading-overlay .overlay-play-btn {
+            width: 70px;
+            height: 70px;
+            background: var(--tutor-color-primary);
             border-radius: 50%;
-            animation: tutor-spin 0.8s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        #video-loading-overlay:hover .overlay-play-btn {
+            transform: scale(1.1);
+        }
+        #video-loading-overlay .overlay-play-btn::after {
+            content: '';
+            display: block;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 12px 0 12px 22px;
+            border-color: transparent transparent transparent #fff;
+            margin-left: 4px;
         }
 
         /* ---- Ocultar elementos de branding de YouTube dentro del embed ---- */
@@ -601,12 +616,11 @@
         if (old) old.remove();
         var overlay = document.createElement('div');
         overlay.id = 'video-loading-overlay';
-        overlay.innerHTML = '<div class="overlay-spinner"></div>';
+        overlay.innerHTML = '<div class="overlay-play-btn"></div>';
         overlay.addEventListener('click', function() {
             if (window.tutorPlayer) {
                 window.tutorPlayer.play();
             }
-            ocultarOverlay();
         });
         container.appendChild(overlay);
     }
@@ -692,7 +706,16 @@
             setStatus('Primero carga un video para generar el enlace', 'error');
             return;
         }
-        var enlace = window.location.origin + window.location.pathname + '?v=' + btoa(url);
+        // Codificar solo el ID/dato mínimo con prefijo de tipo
+        var codigo;
+        if (source.type === 'youtube') {
+            codigo = btoa('yt.' + source.id);
+        } else if (source.type === 'vimeo') {
+            codigo = btoa('vm.' + source.id);
+        } else {
+            codigo = btoa('dr.' + (source.url || url));
+        }
+        var enlace = window.location.origin + window.location.pathname + '?v=' + codigo;
         navigator.clipboard.writeText(enlace).then(function() {
             var linkDiv = document.getElementById('link-generado');
             linkDiv.style.display = 'block';
@@ -719,10 +742,22 @@
         var params = new URLSearchParams(window.location.search);
         var decodedUrl = null;
 
-        // Intentar ?v= (Base64 encoded)
+        // Intentar ?v= (Base64 encoded con prefijo de tipo)
         var vParam = params.get('v');
         if (vParam) {
-            try { decodedUrl = atob(vParam); } catch(e) { decodedUrl = null; }
+            try {
+                var decoded = atob(vParam);
+                if (decoded.indexOf('yt.') === 0) {
+                    decodedUrl = 'https://www.youtube.com/watch?v=' + decoded.substring(3);
+                } else if (decoded.indexOf('vm.') === 0) {
+                    decodedUrl = 'https://vimeo.com/' + decoded.substring(3);
+                } else if (decoded.indexOf('dr.') === 0) {
+                    decodedUrl = decoded.substring(3);
+                } else {
+                    // Compatibilidad con links viejos (URL completa en Base64)
+                    decodedUrl = decoded;
+                }
+            } catch(e) { decodedUrl = null; }
         }
         // Fallback: ?vid= directo (compatibilidad YouTube)
         if (!decodedUrl) {
