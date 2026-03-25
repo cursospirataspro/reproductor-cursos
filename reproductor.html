@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reproductor</title>
+
+    <!--
+    =====================================================================
+    COMPONENTE 1: PLYR CSS
+    La hoja de estilos oficial de Plyr. Dibuja todos los controles
+    (play, barra de progreso, volumen, fullscreen, settings, etc.)
+    En la página original se carga desde:
+    /wp-content/plugins/tutor/assets/lib/plyr/plyr.css
+    =====================================================================
+    -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+
+    <!--
+    =====================================================================
+    COMPONENTE 2: ESTILOS DEL REPRODUCTOR
+    Extraídos del CSS inline de Tutor LMS y del CSS de tutor-front.min.css
+    que controlan el wrapper del video, el aspecto del player y el
+    aspect ratio 16:9.
+    =====================================================================
+    -->
+    <style>
+        /* ---- Variables de color del tema (extraídas de tutor-frontend-inline-css) ---- */
+        :root {
+            --tutor-color-primary: #d6b03d;
+            --tutor-color-primary-rgb: 214, 176, 61;
+            --tutor-color-primary-hover: #dac892;
+            --tutor-color-primary-hover-rgb: 218, 200, 146;
+            --tutor-body-color: #212327;
+            --tutor-body-color-rgb: 33, 35, 39;
+            --tutor-border-color: #cdcfd5;
+            --tutor-border-color-rgb: 205, 207, 213;
+            --tutor-color-gray: #e3e5eb;
+            --tutor-color-gray-rgb: 227, 229, 235;
+        }
+
+        /* ---- Colores personalizados de Plyr (sobreescribe los defaults) ---- */
+        :root {
+            --plyr-color-main: var(--tutor-color-primary);
+            --plyr-video-control-color: #fff;
+            --plyr-video-control-color-hover: #fff;
+            --plyr-video-control-background-hover: rgba(var(--tutor-color-primary-rgb), 0.3);
+            --plyr-range-fill-background: var(--tutor-color-primary);
+            --plyr-badge-background: var(--tutor-color-primary);
+            --plyr-badge-text-color: #000;
+            --plyr-tooltip-background: rgba(0,0,0,0.85);
+            --plyr-tooltip-color: #fff;
+        }
+
+        /* ---- Wrapper del video player ---- */
+        .tutor-video-player-wrapper {
+            position: relative;
+            background: #000;
+            overflow: hidden;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tutor-video-player {
+            position: relative;
+            width: 100%;
+            max-height: 100%;
+        }
+
+        /* Loading spinner (de tutor.min.css) */
+        .tutor-video-player .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: var(--tutor-color-primary);
+            border-radius: 50%;
+            animation: tutor-spin 0.8s linear infinite;
+            z-index: 10;
+        }
+
+        @keyframes tutor-spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* ---- Plyr video embed - aspect ratio 16:9 ---- */
+        .plyr__video-embed {
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            max-height: 100vh;
+        }
+
+        .plyr__video-embed iframe {
+            border: 0;
+            left: 0;
+            position: absolute;
+            /* Agrandar iframe para ocultar UI de YouTube (suscribirse, título, logo) */
+            top: -60px;
+            height: calc(100% + 120px);
+            width: 100%;
+            pointer-events: auto;
+        }
+
+        /* ---- Plyr wrapper que Plyr genera dinámicamente ---- */
+        /* El .plyr__video-wrapper es creado por Plyr al inicializar.
+           Necesita position:relative para que la marca de agua
+           se posicione correctamente dentro. */
+        .plyr__video-wrapper {
+            position: relative;
+        }
+
+        /* ---- Ocultar elementos de branding de YouTube dentro del embed ---- */
+        .plyr__video-embed .plyr__poster {
+            z-index: 2;
+        }
+
+        /* ---- Marca de agua dinámica (extraída del script inline original) ---- */
+        #watermark-dinamica {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.4);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 999999;
+            pointer-events: none;
+            transition: transform 5s ease-in-out;
+        }
+
+        /* ---- Panel de URL ---- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
+        body { background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; }
+
+        .url-panel {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            background: #16213e;
+            border-bottom: 2px solid var(--tutor-color-primary);
+        }
+
+        .url-panel label {
+            color: var(--tutor-color-primary);
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .url-panel input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            background: #0f0f23;
+            color: #e0e0e0;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .url-panel input:focus {
+            border-color: var(--tutor-color-primary);
+        }
+
+        .url-panel input::placeholder {
+            color: #555;
+        }
+
+        .url-panel button {
+            padding: 10px 20px;
+            background: var(--tutor-color-primary);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .url-panel button:hover {
+            background: var(--tutor-color-primary-hover);
+        }
+
+        .url-status {
+            color: #aaa;
+            font-size: 12px;
+            padding: 6px 20px;
+            background: #16213e;
+            min-height: 28px;
+        }
+
+        .url-status.error { color: #ff6b6b; }
+        .url-status.success { color: #51cf66; }
+    </style>
+</head>
+<body>
+
+    <!-- ============== PANEL DE URL ============== -->
+    <div class="url-panel">
+        <label for="youtube-url">URL YouTube:</label>
+        <input type="text" id="youtube-url" placeholder="Pega aquí la URL de YouTube (ejemplo: https://www.youtube.com/watch?v=...)" autocomplete="off" spellcheck="false">
+        <button id="btn-cargar" onclick="cargarVideo()">Cargar Video</button>
+        <button id="btn-copiar" onclick="copiarEnlace()" style="background:#2a9d8f;">Copiar Enlace</button>
+    </div>
+    <div class="url-status" id="url-status">Pega una URL de YouTube y presiona "Cargar Video" o simplemente pega con Ctrl+V</div>
+    <div class="url-status" id="link-generado" style="display:none; cursor:pointer;" onclick="copiarTextoLink()"></div>
+
+    <!--
+    =====================================================================
+    COMPONENTE 3: HTML DEL REPRODUCTOR
+    Estructura exacta extraída de la página original (líneas 1861-1873).
+    
+    - input#tutor_video_tracking_information: datos de tracking del video
+      (progreso, duración, modo estricto, etc.). Tutor LMS lee esto para
+      controlar el avance de la lección.
+    
+    - div.plyr__video-embed.tutorPlayer: el contenedor que Plyr detecta
+      y transforma en reproductor. La clase "tutorPlayer" es la que
+      tutor-front.js busca para inicializar Plyr.
+    
+    - iframe de YouTube: la fuente del video con parámetros para ocultar
+      controles nativos de YouTube:
+        iv_load_policy=3  → sin anotaciones
+        modestbranding=1  → mínimo logo YouTube
+        playsinline=1     → no fullscreen auto en móvil
+        showinfo=0        → sin título del video
+        rel=0             → sin videos relacionados al final
+        enablejsapi=1     → permite control via JavaScript (YouTube IFrame API)
+    =====================================================================
+    -->
+
+    <!-- Datos de tracking del video -->
+    <input type="hidden" id="tutor_video_tracking_information" value='{
+        "post_id": 7237,
+        "best_watch_time": "0",
+        "autoload_next_course_content": true,
+        "strict_mode": true,
+        "control_video_lesson_completion": false,
+        "required_percentage": 80,
+        "video_duration": "1192.301",
+        "lesson_completed": false,
+        "is_enrolled": true
+    }'>
+
+    <!-- Wrapper principal del reproductor -->
+    <div class="tutor-video-player-wrapper">
+        <div class="tutor-video-player">
+            <!-- Spinner de carga -->
+            <div class="loading-spinner" aria-hidden="true"></div>
+
+            <!-- Contenedor Plyr + YouTube iframe -->
+            <div class="plyr__video-embed tutorPlayer">
+                <iframe
+                    src="https://www.youtube.com/embed/UrGU4Dg2FJM?&iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1"
+                    allowfullscreen
+                    allowtransparency
+                    allow="autoplay">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+
+    <!--
+    =====================================================================
+    COMPONENTE 4: PLYR JS (librería)
+    El motor del reproductor. plyr.polyfilled.min.js incluye los
+    polyfills necesarios para navegadores viejos.
+    En la página original se carga desde:
+    /wp-content/plugins/tutor/assets/lib/plyr/plyr.polyfilled.min.js
+    =====================================================================
+    -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+
+
+    <!--
+    =====================================================================
+    COMPONENTE 5: INICIALIZACIÓN DEL REPRODUCTOR
+    Extraído y simplificado del código de tutor-front.js (archivo de
+    ~3000 líneas). Aquí está la parte que hace funcionar al reproductor:
+    
+    1. Busca todos los elementos con clase .tutorPlayer
+    2. Crea una instancia de Plyr en cada uno
+    3. Configura los controles, velocidad, YouTube params
+    4. Plyr automáticamente:
+       - Oculta los controles nativos de YouTube
+       - Inyecta sus propios controles HTML
+       - Se comunica con YouTube via enablejsapi (YouTube IFrame API)
+    =====================================================================
+    -->
+    <script>
+    // ---- Variables globales del reproductor ----
+    var plyrConfig = {
+        controls: [
+            'play-large', 'play', 'progress', 'current-time',
+            'duration', 'mute', 'volume', 'settings', 'fullscreen'
+        ],
+        settings: ['speed'],
+        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
+        keyboard: { focused: true, global: false },
+        tooltips: { controls: true, seek: true },
+        clickToPlay: true,
+        hideControls: true,
+        resetOnEnd: false,
+        invertTime: true,
+        disableContextMenu: true,
+        youtube: {
+            noCookie: false, rel: 0, showinfo: 0,
+            iv_load_policy: 3, modestbranding: 1,
+            playsinline: 1, enablejsapi: 1, controls: 0
+        }
+    };
+
+    window.tutorPlayer = null;
+
+    // ---- Extraer ID de YouTube de cualquier formato de URL ----
+    function extraerYouTubeId(url) {
+        url = url.trim();
+        var patterns = [
+            /(?:youtube\.com\/watch\?.*v=)([a-zA-Z0-9_-]{11})/,
+            /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+            /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+            /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+            /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+            /^([a-zA-Z0-9_-]{11})$/  // ID directo
+        ];
+        for (var i = 0; i < patterns.length; i++) {
+            var match = url.match(patterns[i]);
+            if (match) return match[1];
+        }
+        return null;
+    }
+
+    // ---- Mostrar estado en el panel ----
+    function setStatus(msg, type) {
+        var el = document.getElementById('url-status');
+        el.textContent = msg;
+        el.className = 'url-status' + (type ? ' ' + type : '');
+    }
+
+    // ---- Cargar video nuevo ----
+    function cargarVideo() {
+        var input = document.getElementById('youtube-url');
+        var url = input.value;
+        var videoId = extraerYouTubeId(url);
+
+        if (!videoId) {
+            setStatus('URL no válida. Usa un enlace de YouTube como: https://www.youtube.com/watch?v=XXXXXXXXXXX', 'error');
+            return;
+        }
+
+        setStatus('Cargando video ' + videoId + '...', '');
+
+        // Destruir instancia anterior de Plyr
+        if (window.tutorPlayer) {
+            window.tutorPlayer.destroy();
+            window.tutorPlayer = null;
+        }
+
+        // Eliminar marca de agua anterior
+        var oldWatermark = document.getElementById('watermark-dinamica');
+        if (oldWatermark) oldWatermark.remove();
+
+        // Reconstruir el contenedor del reproductor
+        var playerContainer = document.querySelector('.tutor-video-player');
+        var embedDiv = playerContainer.querySelector('.plyr__video-embed');
+        if (embedDiv) embedDiv.remove();
+
+        // Crear nuevo embed
+        var newEmbed = document.createElement('div');
+        newEmbed.className = 'plyr__video-embed tutorPlayer';
+
+        var iframe = document.createElement('iframe');
+        iframe.src = 'https://www.youtube.com/embed/' + videoId + '?iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1';
+        iframe.setAttribute('allowfullscreen', '');
+        iframe.setAttribute('allowtransparency', '');
+        iframe.setAttribute('allow', 'autoplay');
+
+        newEmbed.appendChild(iframe);
+        playerContainer.appendChild(newEmbed);
+
+        // Inicializar nuevo Plyr
+        initPlyr(newEmbed);
+
+        // Re-inicializar marca de agua
+        setTimeout(initWatermark, 1500);
+
+        setStatus('Video cargado: ' + videoId, 'success');
+    }
+
+    // ---- Inicializar Plyr en un elemento ----
+    function initPlyr(element) {
+        var playerInstance = new Plyr(element, plyrConfig);
+
+        playerInstance.on('ready', function() {
+            var spinner = element.closest('.tutor-video-player');
+            if (spinner) {
+                var loadingEl = spinner.querySelector('.loading-spinner');
+                if (loadingEl) loadingEl.style.display = 'none';
+            }
+        });
+
+        playerInstance.on('timeupdate', function() {
+            var trackingInput = document.getElementById('tutor_video_tracking_information');
+            if (trackingInput) {
+                try {
+                    var trackData = JSON.parse(trackingInput.value);
+                    if (playerInstance.currentTime > parseFloat(trackData.best_watch_time)) {
+                        trackData.best_watch_time = String(playerInstance.currentTime);
+                        trackingInput.value = JSON.stringify(trackData);
+                    }
+                } catch(e) {}
+            }
+        });
+
+        playerInstance.on('ended', function() {
+            var trackingInput = document.getElementById('tutor_video_tracking_information');
+            if (trackingInput) {
+                try {
+                    var trackData = JSON.parse(trackingInput.value);
+                    if (trackData.autoload_next_course_content) {
+                        // navigateToNextLesson();
+                    }
+                } catch(e) {}
+            }
+        });
+
+        window.tutorPlayer = playerInstance;
+    }
+
+    // ---- Auto-detectar URL al pegar (Ctrl+V) ----
+    document.getElementById('youtube-url').addEventListener('paste', function(e) {
+        // Esperar a que el valor se actualice
+        setTimeout(function() {
+            var val = document.getElementById('youtube-url').value;
+            if (extraerYouTubeId(val)) {
+                cargarVideo();
+            }
+        }, 100);
+    });
+
+    // ---- Cargar con Enter ----
+    document.getElementById('youtube-url').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') cargarVideo();
+    });
+
+    // ---- Generar y copiar enlace personalizado ----
+    function copiarEnlace() {
+        var input = document.getElementById('youtube-url');
+        var videoId = extraerYouTubeId(input.value);
+        if (!videoId && window.tutorPlayer) {
+            // Si no hay URL en el input, usar el video actual
+            var src = document.querySelector('.tutorPlayer iframe');
+            if (src) videoId = extraerYouTubeId(src.src);
+        }
+        if (!videoId) {
+            setStatus('Primero carga un video para generar el enlace', 'error');
+            return;
+        }
+        var enlace = window.location.origin + '/watch?vid=' + videoId;
+        navigator.clipboard.writeText(enlace).then(function() {
+            var linkDiv = document.getElementById('link-generado');
+            linkDiv.style.display = 'block';
+            linkDiv.innerHTML = '<span style="color:#51cf66;">Enlace copiado al portapapeles:</span> <span style="color:#d6b03d;text-decoration:underline;">' + enlace + '</span>';
+            linkDiv.className = 'url-status success';
+        });
+    }
+
+    function copiarTextoLink() {
+        var linkDiv = document.getElementById('link-generado');
+        var enlace = linkDiv.textContent.split(': ')[1];
+        if (enlace) navigator.clipboard.writeText(enlace.trim());
+    }
+
+    // ---- Auto-cargar video desde ?vid= en la URL ----
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        var vidParam = params.get('vid');
+
+        if (vidParam && /^[a-zA-Z0-9_-]{11}$/.test(vidParam)) {
+            // Ocultar panel de URL (modo enlace compartido: solo reproductor)
+            document.querySelector('.url-panel').style.display = 'none';
+            document.getElementById('url-status').style.display = 'none';
+            var linkGen = document.getElementById('link-generado');
+            if (linkGen) linkGen.style.display = 'none';
+
+            // Hay un ?vid= en la URL → cargar ese video directamente
+            document.getElementById('youtube-url').value = 'https://www.youtube.com/watch?v=' + vidParam;
+            setTimeout(function() { cargarVideo(); }, 300);
+        } else {
+            // Sin parámetro → inicializar el video por defecto
+            var playerElements = document.querySelectorAll('.tutorPlayer');
+            playerElements.forEach(function(element) {
+                initPlyr(element);
+            });
+        }
+    })();
+    </script>
+
+
+    <!--
+    =====================================================================
+    COMPONENTE 6: MARCA DE AGUA DINÁMICA (anti screen-recording)
+    Código EXACTO extraído del script inline de la página original
+    (líneas 2207-2290). No cambiado — es el mismo que usan ellos.
+    
+    Funcionamiento:
+    1. Espera a que Plyr genere el .plyr__video-wrapper
+    2. Crea un <div> con el email del usuario sobre el video
+    3. Cada 30 segundos lo mueve a una posición aleatoria
+    4. Usa CSS transition para que el movimiento sea suave
+    5. pointer-events:none para que no interfiera con los controles
+    =====================================================================
+    -->
+    <script>
+        function initWatermark() {
+            // Intenta encontrar el contenedor principal del video con la clase 'plyr__video-wrapper'
+            var videoContainer = document.querySelector('.plyr__video-wrapper');
+
+            if (!videoContainer) {
+                // Si no lo encuentra, espera un segundo y vuelve a intentarlo
+                setTimeout(initWatermark, 1000);
+                return;
+            }
+
+            // Identificar el elemento de video real o su área visible
+            var videoElement = videoContainer.querySelector('video') || videoContainer.querySelector('iframe');
+
+            // Si no encontramos el elemento de video, usamos el contenedor como fallback
+            var targetElement = videoElement && videoElement.offsetWidth > 0 ? videoElement : videoContainer;
+
+            // Crea el elemento de la marca de agua si no existe
+            var watermark = document.getElementById('watermark-dinamica');
+            if (!watermark) {
+                watermark = document.createElement('div');
+                watermark.id = 'watermark-dinamica';
+                // ↓↓↓ CAMBIAR POR EL EMAIL DEL USUARIO LOGUEADO ↓↓↓
+                watermark.textContent = 'usuario@ejemplo.com';
+                videoContainer.appendChild(watermark);
+            }
+
+            // Estilos CSS de la marca de agua
+            watermark.style.cssText = '\
+                position: absolute;\
+                color: rgba(255, 255, 255, 0.4);\
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.6);\
+                font-size: 16px;\
+                font-weight: bold;\
+                z-index: 999999;\
+                pointer-events: none;\
+                transition: transform 5s ease-in-out;\
+            ';
+
+            function moveWatermark() {
+                var targetWidth = targetElement.offsetWidth;
+                var targetHeight = targetElement.offsetHeight;
+                var watermarkWidth = watermark.offsetWidth;
+                var watermarkHeight = watermark.offsetHeight;
+
+                var targetOffsetTop = targetElement.offsetTop;
+                var targetOffsetLeft = targetElement.offsetLeft;
+
+                var newTopWithinTarget = Math.random() * (targetHeight - watermarkHeight);
+                var newLeftWithinTarget = Math.random() * (targetWidth - watermarkWidth);
+
+                var finalTop = targetOffsetTop + newTopWithinTarget;
+                var finalLeft = targetOffsetLeft + newLeftWithinTarget;
+
+                watermark.style.transform = 'translate(' + finalLeft + 'px, ' + finalTop + 'px)';
+            }
+
+            // Mueve cada 30 segundos
+            setInterval(moveWatermark, 30000);
+            moveWatermark();
+
+            // Reajustar al cambiar tamaño de ventana
+            window.addEventListener('resize', moveWatermark);
+        }
+
+        window.addEventListener('load', initWatermark);
+    </script>
+
+
+
+</body>
+</html>
