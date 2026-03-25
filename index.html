@@ -94,11 +94,13 @@
         }
 
         /* ---- Plyr video embed - aspect ratio 16:9 capped to viewport ---- */
-        .plyr__video-embed,
-        .plyr {
+        .plyr__video-embed {
             aspect-ratio: 16 / 9;
             overflow: hidden;
             position: relative;
+        }
+
+        .plyr {
             max-width: 100%;
             max-height: 100%;
             width: auto;
@@ -532,6 +534,29 @@
     =====================================================================
     -->
     <script>
+        // Genera un ID único del dispositivo basado en sus características de hardware/software
+        function getDeviceId() {
+            var raw = [
+                navigator.userAgent,
+                navigator.language,
+                screen.width + 'x' + screen.height,
+                screen.colorDepth,
+                new Date().getTimezoneOffset(),
+                navigator.hardwareConcurrency || 'na',
+                navigator.platform,
+                (navigator.deviceMemory || 'na')
+            ].join('|');
+            // Hash simple FNV-1a de 32 bits → hex
+            var hash = 0x811c9dc5;
+            for (var i = 0; i < raw.length; i++) {
+                hash ^= raw.charCodeAt(i);
+                hash = Math.imul(hash, 0x01000193);
+            }
+            var hex = (hash >>> 0).toString(16).toUpperCase();
+            while (hex.length < 8) hex = '0' + hex;
+            return 'DVC-' + hex.substring(0,4) + '-' + hex.substring(4);
+        }
+
         function initWatermark() {
             // Intenta encontrar el contenedor principal del video con la clase 'plyr__video-wrapper'
             var videoContainer = document.querySelector('.plyr__video-wrapper');
@@ -553,8 +578,7 @@
             if (!watermark) {
                 watermark = document.createElement('div');
                 watermark.id = 'watermark-dinamica';
-                // ↓↓↓ CAMBIAR POR EL EMAIL DEL USUARIO LOGUEADO ↓↓↓
-                watermark.textContent = 'usuario@ejemplo.com';
+                watermark.textContent = getDeviceId();
                 videoContainer.appendChild(watermark);
             }
 
