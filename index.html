@@ -468,7 +468,7 @@
             setStatus('Primero carga un video para generar el enlace', 'error');
             return;
         }
-        var enlace = window.location.origin + '/watch?vid=' + videoId;
+        var enlace = window.location.origin + window.location.pathname + '?vid=' + videoId;
         navigator.clipboard.writeText(enlace).then(function() {
             var linkDiv = document.getElementById('link-generado');
             linkDiv.style.display = 'block';
