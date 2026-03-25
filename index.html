@@ -336,28 +336,37 @@
 
     // ---- Picture-in-Picture (ventana flotante) ----
     function activarPiP() {
-        if (!('documentPictureInPicture' in window)) {
-            alert('Tu navegador no soporta Ventana Flotante. Usa Chrome 116+ o Edge 116+.');
+        // Buscar el iframe de YouTube dentro de Plyr
+        var iframe = document.querySelector('.tutorPlayer iframe');
+        if (!iframe) { alert('No hay video cargado.'); return; }
+
+        // Intentar PiP sobre el iframe directamente (Chrome soporta requestPictureInPicture en video)
+        // Para YouTube iframe, usamos un canvas+video bridge
+        if (!document.pictureInPictureEnabled && !('requestPictureInPicture' in HTMLVideoElement.prototype)) {
+            alert('Tu navegador no soporta Ventana Flotante.');
             return;
         }
-        if (documentPictureInPicture.window) {
-            documentPictureInPicture.window.close();
+
+        // Crear un video oculto que capture el iframe via canvas
+        var existingPipVideo = document.getElementById('pip-bridge-video');
+        if (existingPipVideo && document.pictureInPictureElement === existingPipVideo) {
+            document.exitPictureInPicture();
             return;
         }
+
+        // Abrir el video en una popup PiP más simple y confiable
         var currentTime = 0;
         try { currentTime = Math.floor(window.tutorPlayer.currentTime); } catch(e) {}
-        var iframe = document.querySelector('.tutorPlayer iframe');
-        if (!iframe) return;
         var src = iframe.src.split('&start=')[0] + '&autoplay=1&start=' + currentTime;
-        documentPictureInPicture.requestWindow({ width: 640, height: 360 }).then(function(pipWindow) {
-            pipWindow.document.body.style.cssText = 'margin:0;padding:0;background:#000;overflow:hidden;';
-            var pipIframe = document.createElement('iframe');
-            pipIframe.style.cssText = 'width:100%;height:100%;border:0;';
-            pipIframe.src = src;
-            pipIframe.setAttribute('allowfullscreen', '');
-            pipIframe.setAttribute('allow', 'autoplay; picture-in-picture');
-            pipWindow.document.body.appendChild(pipIframe);
-        });
+
+        var pipW = 640, pipH = 360;
+        var left = screen.width - pipW - 20;
+        var top = screen.height - pipH - 100;
+        var features = 'width=' + pipW + ',height=' + pipH + ',left=' + left + ',top=' + top + ',resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no';
+        var pipWin = window.open('', 'pip_player', features);
+        if (!pipWin) { alert('Permite ventanas emergentes para usar la ventana flotante.'); return; }
+        pipWin.document.write('<!DOCTYPE html><html><head><title>Reproductor</title><style>*{margin:0;padding:0}body{background:#000;overflow:hidden}iframe{width:100%;height:100%;border:0}</style></head><body><iframe src="' + src + '" allowfullscreen allow="autoplay"></iframe></body></html>');
+        pipWin.document.close();
     }
 
     function injectPiPButton() {
@@ -530,8 +539,15 @@
 
     function copiarTextoLink() {
         var linkDiv = document.getElementById('link-generado');
-        var enlace = linkDiv.textContent.split(': ')[1];
-        if (enlace) navigator.clipboard.writeText(enlace.trim());
+        var spans = linkDiv.querySelectorAll('span');
+        var enlace = spans.length > 1 ? spans[1].textContent.trim() : '';
+        if (enlace) {
+            navigator.clipboard.writeText(enlace).then(function() {
+                var original = spans[0].textContent;
+                spans[0].textContent = '¡Enlace copiado! ';
+                setTimeout(function() { spans[0].textContent = original; }, 1500);
+            });
+        }
     }
 
     // ---- Auto-cargar video desde URL codificada ----
@@ -630,7 +646,7 @@
                 font-weight: bold;\
                 z-index: 999999;\
                 pointer-events: none;\
-                transition: left 5s ease-in-out, top 5s ease-in-out;\
+                transition: left 1.5s ease-in-out, top 1.5s ease-in-out;\
             ';
 
             function moveWatermark() {
@@ -648,7 +664,7 @@
                 watermark.style.top = (pad + Math.random() * (maxTop - pad)) + 'px';
             }
 
-            setInterval(moveWatermark, 30000);
+            setInterval(moveWatermark, 2000);
             moveWatermark();
             window.addEventListener('resize', moveWatermark);
             document.addEventListener('fullscreenchange', function() { setTimeout(moveWatermark, 300); });
