@@ -131,6 +131,23 @@
             z-index: 2;
         }
 
+        /* Capa para tapar logo de YouTube en esquina inferior derecha */
+        .yt-logo-cover {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 120px;
+            height: 40px;
+            background: #000;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 2s ease;
+        }
+        .plyr--playing .yt-logo-cover {
+            opacity: 0;
+            transition-delay: 3s;
+        }
+
         /* ---- Marca de agua dinámica (extraída del script inline original) ---- */
         #watermark-dinamica {
             position: absolute;
@@ -419,6 +436,14 @@
                 var loadingEl = spinner.querySelector('.loading-spinner');
                 if (loadingEl) loadingEl.style.display = 'none';
             }
+            // Inyectar capa que tapa logo de YouTube
+            var wrapper = element.closest('.plyr') || element;
+            var videoWrap = wrapper.querySelector('.plyr__video-wrapper');
+            if (videoWrap && !videoWrap.querySelector('.yt-logo-cover')) {
+                var cover = document.createElement('div');
+                cover.className = 'yt-logo-cover';
+                videoWrap.appendChild(cover);
+            }
         });
 
         playerInstance.on('timeupdate', function() {
@@ -478,7 +503,7 @@
             setStatus('Primero carga un video para generar el enlace', 'error');
             return;
         }
-        var enlace = window.location.origin + window.location.pathname + '?vid=' + videoId;
+        var enlace = window.location.origin + window.location.pathname + '?v=' + btoa(videoId);
         navigator.clipboard.writeText(enlace).then(function() {
             var linkDiv = document.getElementById('link-generado');
             linkDiv.style.display = 'block';
@@ -493,10 +518,18 @@
         if (enlace) navigator.clipboard.writeText(enlace.trim());
     }
 
-    // ---- Auto-cargar video desde ?vid= en la URL ----
+    // ---- Auto-cargar video desde URL codificada ----
     (function() {
         var params = new URLSearchParams(window.location.search);
-        var vidParam = params.get('vid');
+        var vidParam = null;
+
+        // Primero intentar ?v= (Base64 encoded)
+        var vParam = params.get('v');
+        if (vParam) {
+            try { vidParam = atob(vParam); } catch(e) { vidParam = null; }
+        }
+        // Fallback: ?vid= directo (compatibilidad)
+        if (!vidParam) vidParam = params.get('vid');
 
         if (vidParam && /^[a-zA-Z0-9_-]{11}$/.test(vidParam)) {
             // Ocultar panel de URL (modo enlace compartido: solo reproductor)
