@@ -262,7 +262,7 @@
             <!-- Contenedor Plyr + YouTube iframe -->
             <div class="plyr__video-embed tutorPlayer">
                 <iframe
-                    src="https://www.youtube.com/embed/UrGU4Dg2FJM?&iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1"
+                    src="https://www.youtube.com/embed/UrGU4Dg2FJM?origin=https://cursospirataspro.github.io&iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1"
                     allowfullscreen
                     allowtransparency
                     allow="autoplay">
@@ -318,7 +318,8 @@
         youtube: {
             noCookie: false, rel: 0, showinfo: 0,
             iv_load_policy: 3, modestbranding: 1,
-            playsinline: 1, enablejsapi: 1, controls: 0
+            playsinline: 1, enablejsapi: 1, controls: 0,
+            origin: window.location.origin
         }
     };
 
@@ -382,7 +383,7 @@
         newEmbed.className = 'plyr__video-embed tutorPlayer';
 
         var iframe = document.createElement('iframe');
-        iframe.src = 'https://www.youtube.com/embed/' + videoId + '?iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1';
+        iframe.src = 'https://www.youtube.com/embed/' + videoId + '?origin=' + encodeURIComponent(window.location.origin) + '&iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1';
         iframe.setAttribute('allowfullscreen', '');
         iframe.setAttribute('allowtransparency', '');
         iframe.setAttribute('allow', 'autoplay');
