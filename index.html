@@ -150,6 +150,7 @@
             align-items: center;
             justify-content: center;
             transition: opacity 0.4s ease;
+            cursor: pointer;
         }
         #video-loading-overlay.hidden {
             opacity: 0;
@@ -601,6 +602,12 @@
         var overlay = document.createElement('div');
         overlay.id = 'video-loading-overlay';
         overlay.innerHTML = '<div class="overlay-spinner"></div>';
+        overlay.addEventListener('click', function() {
+            if (window.tutorPlayer) {
+                window.tutorPlayer.play();
+            }
+            ocultarOverlay();
+        });
         container.appendChild(overlay);
     }
 
