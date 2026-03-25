@@ -62,6 +62,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 100%;
+            height: 100%;
         }
 
         .tutor-video-player {
@@ -93,17 +95,20 @@
             to { transform: translate(-50%, -50%) rotate(360deg); }
         }
 
-        /* ---- Plyr video embed - aspect ratio 16:9 capped to viewport ---- */
+        /* ---- Plyr video embed - aspect ratio 16:9, auto-adapt to container ---- */
         .plyr__video-embed {
             aspect-ratio: 16 / 9;
             overflow: hidden;
             position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
         }
 
         .plyr {
             max-width: 100%;
             max-height: 100%;
-            width: auto;
+            width: 100%;
             height: 100%;
         }
 
@@ -334,55 +339,6 @@
 
     window.tutorPlayer = null;
 
-    // ---- Picture-in-Picture (ventana flotante) ----
-    function activarPiP() {
-        // Buscar el iframe de YouTube dentro de Plyr
-        var iframe = document.querySelector('.tutorPlayer iframe');
-        if (!iframe) { alert('No hay video cargado.'); return; }
-
-        // Intentar PiP sobre el iframe directamente (Chrome soporta requestPictureInPicture en video)
-        // Para YouTube iframe, usamos un canvas+video bridge
-        if (!document.pictureInPictureEnabled && !('requestPictureInPicture' in HTMLVideoElement.prototype)) {
-            alert('Tu navegador no soporta Ventana Flotante.');
-            return;
-        }
-
-        // Crear un video oculto que capture el iframe via canvas
-        var existingPipVideo = document.getElementById('pip-bridge-video');
-        if (existingPipVideo && document.pictureInPictureElement === existingPipVideo) {
-            document.exitPictureInPicture();
-            return;
-        }
-
-        // Abrir el video en una popup PiP más simple y confiable
-        var currentTime = 0;
-        try { currentTime = Math.floor(window.tutorPlayer.currentTime); } catch(e) {}
-        var src = iframe.src.split('&start=')[0] + '&autoplay=1&start=' + currentTime;
-
-        var pipW = 640, pipH = 360;
-        var left = screen.width - pipW - 20;
-        var top = screen.height - pipH - 100;
-        var features = 'width=' + pipW + ',height=' + pipH + ',left=' + left + ',top=' + top + ',resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no';
-        var pipWin = window.open('', 'pip_player', features);
-        if (!pipWin) { alert('Permite ventanas emergentes para usar la ventana flotante.'); return; }
-        pipWin.document.write('<!DOCTYPE html><html><head><title>Reproductor</title><style>*{margin:0;padding:0}body{background:#000;overflow:hidden}iframe{width:100%;height:100%;border:0}</style></head><body><iframe src="' + src + '" allowfullscreen allow="autoplay"></iframe></body></html>');
-        pipWin.document.close();
-    }
-
-    function injectPiPButton() {
-        var controls = document.querySelector('.plyr__controls');
-        if (!controls || controls.querySelector('#custom-pip-btn')) return;
-        var fullscreenBtn = controls.querySelector('[data-plyr="fullscreen"]');
-        if (!fullscreenBtn) return;
-        var btn = document.createElement('button');
-        btn.className = 'plyr__controls__item plyr__control';
-        btn.type = 'button';
-        btn.id = 'custom-pip-btn';
-        btn.innerHTML = '<svg viewBox="0 0 18 18" width="18" height="18"><path fill="currentColor" d="M1 3v12h16V3H1zm14 10H3V5h12v10z"/><path fill="currentColor" d="M10 9h4v3h-4z"/></svg><span class="plyr__tooltip">Ventana flotante</span>';
-        btn.addEventListener('click', activarPiP);
-        controls.insertBefore(btn, fullscreenBtn);
-    }
-
     // ---- Extraer ID de YouTube de cualquier formato de URL ----
     function extraerYouTubeId(url) {
         url = url.trim();
@@ -468,7 +424,6 @@
                 var loadingEl = spinner.querySelector('.loading-spinner');
                 if (loadingEl) loadingEl.style.display = 'none';
             }
-            injectPiPButton();
         });
 
         playerInstance.on('timeupdate', function() {
@@ -664,7 +619,7 @@
                 watermark.style.top = (pad + Math.random() * (maxTop - pad)) + 'px';
             }
 
-            setInterval(moveWatermark, 2000);
+            setInterval(moveWatermark, 5000);
             moveWatermark();
             window.addEventListener('resize', moveWatermark);
             document.addEventListener('fullscreenchange', function() { setTimeout(moveWatermark, 300); });
