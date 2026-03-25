@@ -131,23 +131,6 @@
             z-index: 2;
         }
 
-        /* Capa para tapar logo de YouTube en esquina inferior derecha */
-        .yt-logo-cover {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 120px;
-            height: 40px;
-            background: #000;
-            z-index: 10;
-            pointer-events: none;
-            transition: opacity 2s ease;
-        }
-        .plyr--playing .yt-logo-cover {
-            opacity: 0;
-            transition-delay: 3s;
-        }
-
         /* ---- Marca de agua dinámica (extraída del script inline original) ---- */
         #watermark-dinamica {
             position: absolute;
@@ -436,14 +419,7 @@
                 var loadingEl = spinner.querySelector('.loading-spinner');
                 if (loadingEl) loadingEl.style.display = 'none';
             }
-            // Inyectar capa que tapa logo de YouTube
-            var wrapper = element.closest('.plyr') || element;
-            var videoWrap = wrapper.querySelector('.plyr__video-wrapper');
-            if (videoWrap && !videoWrap.querySelector('.yt-logo-cover')) {
-                var cover = document.createElement('div');
-                cover.className = 'yt-logo-cover';
-                videoWrap.appendChild(cover);
-            }
+            // Inyectar controles listos
         });
 
         playerInstance.on('timeupdate', function() {
